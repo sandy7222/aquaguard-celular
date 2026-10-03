@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#070b14">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="AquaGuard">
+  <title>AquaGuard</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <style>
+    :root {
+      --bg: #070b14;
+      --card: #121a2b;
+      --line: rgba(255,255,255,0.08);
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --cyan: #06b6d4;
+      --green: #10b981;
+      --red: #ef4444;
+      --amber: #f59e0b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: calc(16px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+    }
+    .app { max-width: 460px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+    h1 { font-size: 1.45rem; letter-spacing: -0.03em; }
+    p.ayuda { color: var(--muted); line-height: 1.45; font-size: 0.95rem; }
+    label { display: block; color: var(--muted); font-size: 0.82rem; margin-bottom: 6px; }
+    input {
+      width: 100%;
+      background: #0c1322;
+      border: 1px solid var(--line);
+      color: var(--text);
+      border-radius: 14px;
+      padding: 14px 16px;
+      font-size: 1.05rem;
+      letter-spacing: 0.04em;
+    }
+    button { font: inherit; cursor: pointer; border: 0; }
+    .primario, .ok, .alto {
+      width: 100%;
+      border-radius: 16px;
+      padding: 16px;
+      font-weight: 700;
+      font-size: 1.02rem;
+    }
+    .primario { background: var(--cyan); color: #042028; }
+    .ok { background: var(--green); color: #042018; }
+    .alto { background: rgba(239,68,68,0.18); color: #fecaca; border: 1px solid rgba(239,68,68,0.45); }
+    .fila { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .estado { color: var(--muted); font-size: 0.85rem; }
+    .estado.ok { color: var(--green); }
+    .estado.malo { color: #fca5a5; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .nivel { font-size: 3.4rem; font-weight: 800; color: var(--cyan); letter-spacing: -0.04em; line-height: 1; }
+    .sub { color: var(--muted); font-size: 0.92rem; }
+    .botones { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .luz {
+      width: 100%;
+      text-align: left;
+      background: #0c1322;
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 650;
+    }
+    .luz.activa { border-color: rgba(245,158,11,0.7); box-shadow: inset 0 0 0 1px rgba(245,158,11,0.35); }
+    .pill {
+      min-width: 58px;
+      text-align: center;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 0.78rem;
+      font-weight: 800;
+      background: #1e293b;
+      color: var(--muted);
+    }
+    .luz.activa .pill { background: var(--amber); color: #1c1404; }
+    .aviso { color: #fcd34d; font-size: 0.88rem; }
+    .link {
+      background: transparent;
+      color: var(--muted);
+      text-decoration: underline;
+      padding: 8px;
+    }
+    .oculto { display: none; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section id="acceso">
+      <div class="card">
+        <h1>AquaGuard</h1>
+        <p class="ayuda">Esta es la app de la bomba del tanque y las luces de la casa. Funciona con datos móviles, aunque estés en otra ciudad.</p>
+        <div>
+          <label for="clave">Clave del módulo</label>
+          <input id="clave" inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="a1b2-c3d4-e5f6-a7b8-c9d0">
+        </div>
+        <button class="primario" id="entrar" type="button">Entrar</button>
+        <p class="ayuda">La clave aparece en el panel de la computadora cuando el módulo está conectado, abajo de todo. También sale en el monitor serie.</p>
+      </div>
+    </section>
+
+    <section id="panel" class="oculto">
+      <div class="fila">
+        <h1>AquaGuard</h1>
+        <div class="estado" id="enlace">Conectando...</div>
+      </div>
+      <div class="card">
+        <div class="sub">Tanque</div>
+        <div class="nivel" id="nivel">--%</div>
+        <div class="sub" id="detalle">Esperando datos del módulo</div>
+      </div>
+      <div class="card">
+        <div class="fila">
+          <strong>Bomba sumergible</strong>
+          <div class="sub" id="bomba-txt">--</div>
+        </div>
+        <p class="aviso oculto" id="aviso"></p>
+        <div class="botones">
+          <button class="ok" type="button" onclick="pedirBomba('on')">Encender</button>
+          <button class="alto" type="button" onclick="pedirBomba('off')">Detener</button>
+        </div>
+      </div>
+      <div class="card">
+        <strong>Luces</strong>
+        <button class="luz" id="luz-patio" type="button" onclick="alternar('patio')">
+          <span>Luces patio</span><span class="pill" id="pill-patio">OFF</span>
+        </button>
+        <button class="luz" id="luz-garage" type="button" onclick="alternar('garage')">
+          <span>Luces garage</span><span class="pill" id="pill-garage">OFF</span>
+        </button>
+        <button class="luz" id="luz-aux" type="button" onclick="alternar('aux')">
+          <span>Auxiliar</span><span class="pill" id="pill-aux">OFF</span>
+        </button>
+      </div>
+      <button class="link" type="button" onclick="salir()">Olvidar esta clave</button>
+    </section>
+  </div>
+  <script>
+    let clave = "";
+    let topic = "";
+    let fuente = null;
+    let vioModulo = false;
+    const luces = { patio: false, garage: false, aux: false };
+
+    function normalizar(valor) {
+      return (valor || "").toLowerCase().replace(/[^a-f0-9]/g, "");
+    }
+
+    function entrar() {
+      const limpia = normalizar(document.getElementById("clave").value);
+      if (limpia.length !== 20) {
+        document.getElementById("clave").focus();
+        return;
+      }
+      localStorage.setItem("ag_clave", limpia);
+      abrir(limpia);
+    }
+
+    function abrir(limpia) {
+      clave = limpia;
+      topic = "ag" + limpia;
+      document.getElementById("acceso").classList.add("oculto");
+      document.getElementById("panel").classList.remove("oculto");
+      escuchar();
+    }
+
+    function salir() {
+      if (fuente) fuente.close();
+      localStorage.removeItem("ag_clave");
+      location.reload();
+    }
+
+    function enlace(texto, clase) {
+      const el = document.getElementById("enlace");
+      el.textContent = texto;
+      el.className = "estado" + (clase ? " " + clase : "");
+    }
+
+    function escuchar() {
+      if (fuente) fuente.close();
+      enlace("Conectando...");
+      fuente = new EventSource("https://ntfy.sh/" + topic + "/sse");
+      fuente.onopen = () => { if (!vioModulo) enlace("En línea", "ok"); };
+      fuente.onerror = () => enlace("Sin enlace", "malo");
+      fuente.onmessage = (evento) => {
+        let data;
+        try { data = JSON.parse(evento.data); } catch (e) { return; }
+        if (!data.message || !data.message.startsWith("s|")) return;
+        vioModulo = true;
+        enlace("En línea", "ok");
+        pintar(data.message);
+      };
+    }
+
+    function pintar(mensaje) {
+      const datos = {};
+      mensaje.split("|").forEach((parte) => {
+        const i = parte.indexOf("=");
+        if (i > 0) datos[parte.slice(0, i)] = parte.slice(i + 1);
+      });
+      const nivel = Number(datos.nivel);
+      document.getElementById("nivel").textContent = nivel >= 0 ? Math.round(nivel) + "%" : "--%";
+      const prof = datos.prof && Number(datos.prof) >= 0 ? Number(datos.prof).toFixed(1) + " cm" : "sin lectura";
+      document.getElementById("detalle").textContent = "Profundidad " + prof;
+      const bomba = datos.bomba === "1";
+      document.getElementById("bomba-txt").textContent = bomba ? "Encendida" : "Apagada";
+      const aviso = document.getElementById("aviso");
+      const bloqueo = Number(datos.bloqueo || 0);
+      if (bloqueo === 1) {
+        aviso.textContent = "La bomba no enciende: no llegan datos del tanque.";
+        aviso.classList.remove("oculto");
+      } else if (bloqueo === 2) {
+        aviso.textContent = "La bomba se cortó por tiempo máximo de marcha.";
+        aviso.classList.remove("oculto");
+      } else if (datos.lora === "0") {
+        aviso.textContent = "El tanque no está informando por radio.";
+        aviso.classList.remove("oculto");
+      } else {
+        aviso.classList.add("oculto");
+      }
+      ["patio", "garage", "aux"].forEach((nombre) => {
+        luces[nombre] = datos[nombre] === "1";
+        document.getElementById("luz-" + nombre).classList.toggle("activa", luces[nombre]);
+        document.getElementById("pill-" + nombre).textContent = luces[nombre] ? "ON" : "OFF";
+      });
+    }
+
+    async function enviar(dest, acc) {
+      enlace("Enviando...");
+      try {
+        const res = await fetch("https://ntfy.sh/" + topic, {
+          method: "POST",
+          body: "c|" + clave + "|" + dest + "|" + acc
+        });
+        if (!res.ok) enlace("No se pudo enviar", "malo");
+      } catch (e) {
+        enlace("Sin internet", "malo");
+      }
+    }
+
+    function pedirBomba(acc) {
+      document.getElementById("bomba-txt").textContent = acc === "on" ? "Encendida" : "Apagada";
+      enviar("bomba", acc);
+    }
+
+    function alternar(nombre) {
+      luces[nombre] = !luces[nombre];
+      document.getElementById("luz-" + nombre).classList.toggle("activa", luces[nombre]);
+      document.getElementById("pill-" + nombre).textContent = luces[nombre] ? "ON" : "OFF";
+      enviar(nombre, luces[nombre] ? "on" : "off");
+    }
+
+    document.getElementById("entrar").addEventListener("click", entrar);
+    document.getElementById("clave").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") entrar();
+    });
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    }
+
+    const guardada = normalizar(localStorage.getItem("ag_clave"));
+    if (guardada.length === 20) abrir(guardada);
+  </script>
+</body>
+</html>
