@@ -160,6 +160,7 @@
     </section>
   </div>
   <script>
+    const CLAVE_DE_FABRICA = "f1f22e9df6852853b656";
     let clave = "";
     let topic = "";
     let fuente = null;
@@ -190,8 +191,10 @@
 
     function salir() {
       if (fuente) fuente.close();
+      fuente = null;
       localStorage.removeItem("ag_clave");
-      location.reload();
+      document.getElementById("panel").classList.add("oculto");
+      document.getElementById("acceso").classList.remove("oculto");
     }
 
     function enlace(texto, clase) {
@@ -285,6 +288,10 @@
 
     const guardada = normalizar(localStorage.getItem("ag_clave"));
     if (guardada.length === 20) abrir(guardada);
+    else {
+      localStorage.setItem("ag_clave", CLAVE_DE_FABRICA);
+      abrir(CLAVE_DE_FABRICA);
+    }
   </script>
 </body>
 </html>
